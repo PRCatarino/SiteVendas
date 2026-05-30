@@ -15,136 +15,129 @@ import {
   Trash2,
   Truck,
 } from "lucide-react";
-import { BenefitBar } from "@/components/benefit-bar";
-import { PaymentGrid } from "@/components/footer";
-import { ProductImage } from "@/components/product-image";
+import { BarraBeneficios } from "@/components/benefit-bar";
+import { GradePagamentos } from "@/components/footer";
+import { ImagemProduto } from "@/components/product-image";
 import { useToast } from "@/components/toast";
-import { installmentText, money } from "@/lib/format";
+import { formatarDinheiro, textoParcelas } from "@/lib/format";
 
-export function CartClient() {
+export function ClienteCarrinho() {
   const router = useRouter();
-  const { showToast } = useToast();
-  const [cart, setCart] = useState({ items: [], count: 0, subtotal: 0, freight: 0, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const { exibirToast } = useToast();
+  const [carrinho, setCarrinho] = useState({ items: [], count: 0, subtotal: 0, freight: 0, total: 0 });
+  const [carregando, setCarregando] = useState(true);
   const [cep, setCep] = useState("");
-  const [couponCode, setCouponCode] = useState("");
-  const [discount, setDiscount] = useState(0);
-  const [freight, setFreight] = useState(null);
-  const [checkoutDone, setCheckoutDone] = useState(null);
+  const [codigoCupom, setCodigoCupom] = useState("");
+  const [desconto, setDesconto] = useState(0);
+  const [frete, setFrete] = useState(null);
+  const [checkoutConcluido, setCheckoutConcluido] = useState(null);
 
-  const summary = useMemo(() => {
-    const freightValue = freight ? freight.price : cart.freight;
-    const total = Math.max(0, cart.subtotal - discount + freightValue);
-    return { freightValue, total };
-  }, [cart.freight, cart.subtotal, discount, freight]);
-
-  async function loadCart() {
-    const response = await fetch("/api/cart", { cache: "no-store" });
-    const data = await response.json();
-    setCart(data.cart);
-    setLoading(false);
-  }
+  const resumo = useMemo(() => {
+    const valorFrete = frete ? frete.price : carrinho.freight;
+    const total = Math.max(0, carrinho.subtotal - desconto + valorFrete);
+    return { valorFrete, total };
+  }, [carrinho.freight, carrinho.subtotal, desconto, frete]);
 
   useEffect(() => {
-    let ignore = false;
+    let ignorar = false;
 
-    async function loadInitialCart() {
+    async function carregarCarrinhoInicial() {
       const response = await fetch("/api/cart", { cache: "no-store" });
       const data = await response.json();
 
-      if (!ignore) {
-        setCart(data.cart);
-        setLoading(false);
+      if (!ignorar) {
+        setCarrinho(data.cart);
+        setCarregando(false);
       }
     }
 
-    loadInitialCart();
+    carregarCarrinhoInicial();
 
     return () => {
-      ignore = true;
+      ignorar = true;
     };
   }, []);
 
-  async function setQuantity(productId, quantity) {
+  async function definirQuantidade(produtoId, quantidade) {
     const response = await fetch("/api/cart", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, quantity }),
+      body: JSON.stringify({ productId: produtoId, quantity: quantidade }),
     });
     const data = await response.json();
-    setCart(data.cart);
-    setDiscount(0);
+    setCarrinho(data.cart);
+    setDesconto(0);
     window.dispatchEvent(new Event("cart-updated"));
   }
 
-  async function removeItem(productId) {
+  async function removerItem(produtoId) {
     const response = await fetch("/api/cart", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId }),
+      body: JSON.stringify({ productId: produtoId }),
     });
     const data = await response.json();
-    setCart(data.cart);
-    setDiscount(0);
-    showToast("Produto removido do carrinho.");
+    setCarrinho(data.cart);
+    setDesconto(0);
+    exibirToast("Produto removido do carrinho.");
     window.dispatchEvent(new Event("cart-updated"));
   }
 
-  async function clearCart() {
+  async function limparCarrinho() {
     const response = await fetch("/api/cart", { method: "DELETE" });
     const data = await response.json();
-    setCart(data.cart);
-    setDiscount(0);
-    setFreight(null);
+    setCarrinho(data.cart);
+    setDesconto(0);
+    setFrete(null);
     window.dispatchEvent(new Event("cart-updated"));
-    showToast("Carrinho limpo.");
+    exibirToast("Carrinho limpo.");
   }
 
-  async function calculateFreight() {
+  async function calcularFrete() {
     const response = await fetch("/api/freight", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cep, subtotal: cart.subtotal }),
+      body: JSON.stringify({ cep, subtotal: carrinho.subtotal }),
     });
     const data = await response.json();
 
     if (!response.ok) {
-      showToast(data.error || "Não foi possível calcular o frete.");
+      exibirToast(data.error || "Não foi possível calcular o frete.");
       return;
     }
 
-    setFreight(data);
-    showToast(data.message);
+    setFrete(data);
+    exibirToast(data.message);
   }
 
-  async function applyCoupon() {
+  async function aplicarCupom() {
     const response = await fetch("/api/coupon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: couponCode, subtotal: cart.subtotal }),
+      body: JSON.stringify({ code: codigoCupom, subtotal: carrinho.subtotal }),
     });
     const data = await response.json();
 
     if (!response.ok) {
-      setDiscount(0);
-      showToast(data.error || "Cupom inválido.");
+      setDesconto(0);
+      exibirToast(data.error || "Cupom inválido.");
       return;
     }
 
-    setDiscount(data.discount);
-    showToast("Cupom aplicado com sucesso.");
+    setDesconto(data.discount);
+    exibirToast("Cupom aplicado com sucesso.");
   }
 
-  async function finishOrder() {
-    if (!cart.items.length) {
-      showToast("Seu carrinho está vazio.");
+  async function finalizarPedido() {
+    if (!carrinho.items.length) {
+      exibirToast("Seu carrinho está vazio.");
       return;
     }
 
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cep, couponCode }),
+      body: JSON.stringify({ cep, couponCode: codigoCupom }),
     });
     const data = await response.json();
 
@@ -153,16 +146,16 @@ export function CartClient() {
         router.push("/login?next=/carrinho");
         return;
       }
-      showToast(data.error || "Não foi possível finalizar a compra.");
+      exibirToast(data.error || "Não foi possível finalizar a compra.");
       return;
     }
 
-    setCheckoutDone(data.order);
-    setCart({ items: [], count: 0, subtotal: 0, freight: 0, total: 0 });
-    setDiscount(0);
-    setFreight(null);
+    setCheckoutConcluido(data.order);
+    setCarrinho({ items: [], count: 0, subtotal: 0, freight: 0, total: 0 });
+    setDesconto(0);
+    setFrete(null);
     window.dispatchEvent(new Event("cart-updated"));
-    showToast(data.paymentPending ? data.message : "Pedido criado. Você será direcionado para o pagamento.");
+    exibirToast(data.paymentPending ? data.message : "Pedido criado. Você será direcionado para o pagamento.");
 
     if (data.checkoutUrl) {
       window.location.href = data.checkoutUrl;
@@ -186,24 +179,24 @@ export function CartClient() {
 
       <div className="container cart-layout">
         <section className="cart-panel">
-          {loading && <div className="cart-empty">Carregando carrinho...</div>}
+          {carregando && <div className="cart-empty">Carregando carrinho...</div>}
 
-          {!loading && checkoutDone && (
+          {!carregando && checkoutConcluido && (
             <div className="cart-empty">
               <strong>Pedido criado com sucesso</strong>
-              <p>Pedido {checkoutDone.id}</p>
+              <p>Pedido {checkoutConcluido.id}</p>
               <Link className="button button-primary" href="/">Continuar comprando</Link>
             </div>
           )}
 
-          {!loading && !checkoutDone && cart.items.length === 0 && (
+          {!carregando && !checkoutConcluido && carrinho.items.length === 0 && (
             <div className="cart-empty">
               <strong>Seu carrinho está vazio</strong>
               <Link className="button button-primary" href="/">Continuar comprando</Link>
             </div>
           )}
 
-          {!loading && !checkoutDone && cart.items.length > 0 && (
+          {!carregando && !checkoutConcluido && carrinho.items.length > 0 && (
             <>
               <div className="cart-table">
                 <div className="cart-table-header">
@@ -213,28 +206,28 @@ export function CartClient() {
                   <span>Subtotal</span>
                   <span />
                 </div>
-                {cart.items.map(({ product, quantity }) => (
+                {carrinho.items.map(({ product, quantity }) => (
                   <article className="cart-row" key={product.id}>
                     <div className="cart-product">
-                      <ProductImage product={product} />
+                      <ImagemProduto product={product} />
                       <div>
                         <h2>{product.name}</h2>
                         <p>Código: {product.code}</p>
                         <small>✓ Em estoque</small>
                       </div>
                     </div>
-                    <strong>{money(product.price)}</strong>
+                    <strong>{formatarDinheiro(product.price)}</strong>
                     <div className="quantity-control compact">
-                      <button type="button" onClick={() => setQuantity(product.id, quantity - 1)} aria-label="Diminuir">
+                      <button type="button" onClick={() => definirQuantidade(product.id, quantity - 1)} aria-label="Diminuir">
                         <Minus size={15} />
                       </button>
                       <strong>{quantity}</strong>
-                      <button type="button" onClick={() => setQuantity(product.id, quantity + 1)} aria-label="Aumentar">
+                      <button type="button" onClick={() => definirQuantidade(product.id, quantity + 1)} aria-label="Aumentar">
                         <Plus size={15} />
                       </button>
                     </div>
-                    <strong>{money(product.price * quantity)}</strong>
-                    <button className="icon-button" type="button" onClick={() => removeItem(product.id)} aria-label="Remover">
+                    <strong>{formatarDinheiro(product.price * quantity)}</strong>
+                    <button className="icon-button" type="button" onClick={() => removerItem(product.id)} aria-label="Remover">
                       <Trash2 size={19} />
                     </button>
                   </article>
@@ -244,7 +237,7 @@ export function CartClient() {
                 <Link href="/">
                   <ChevronLeft size={16} /> Continuar comprando
                 </Link>
-                <button type="button" onClick={clearCart}>
+                <button type="button" onClick={limparCarrinho}>
                   <Trash2 size={16} /> Limpar carrinho
                 </button>
               </div>
@@ -259,8 +252,14 @@ export function CartClient() {
               <p>Digite seu CEP para calcular o frete</p>
               <div className="inline-form wide">
                 <input value={cep} onChange={(event) => setCep(event.target.value)} placeholder="Ex.: 01234-567" />
-                <button type="button" onClick={calculateFreight}>Calcular</button>
+                <button type="button" onClick={calcularFrete}>Calcular</button>
               </div>
+              {frete && (
+                <p className="freight-result">
+                  <strong>{frete.label}</strong> — Prazo: {frete.deadline}
+                  {frete.price > 0 && <> — {formatarDinheiro(frete.price)}</>}
+                </p>
+              )}
             </div>
             <div className="free-shipping-card">
               <Truck size={32} />
@@ -274,8 +273,8 @@ export function CartClient() {
                 <Tag size={27} /> Cupom de desconto
               </h2>
               <div className="inline-form wide">
-                <input value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="Digite seu cupom" />
-                <button type="button" onClick={applyCoupon}>Aplicar cupom</button>
+                <input value={codigoCupom} onChange={(event) => setCodigoCupom(event.target.value)} placeholder="Digite seu cupom" />
+                <button type="button" onClick={aplicarCupom}>Aplicar cupom</button>
               </div>
             </div>
           </section>
@@ -285,24 +284,24 @@ export function CartClient() {
           <h2>Resumo do Pedido</h2>
           <dl>
             <div>
-              <dt>Subtotal ({cart.count} {cart.count === 1 ? "item" : "itens"})</dt>
-              <dd>{money(cart.subtotal)}</dd>
+              <dt>Subtotal ({carrinho.count} {carrinho.count === 1 ? "item" : "itens"})</dt>
+              <dd>{formatarDinheiro(carrinho.subtotal)}</dd>
             </div>
             <div>
-              <dt>Frete {freight ? `(${freight.label})` : "(estimado)"}</dt>
-              <dd>{freight ? money(freight.price) : cart.subtotal >= 199 ? "Grátis" : "Calcular"}</dd>
+              <dt>Frete {frete ? `(${frete.label})` : "(estimado)"}</dt>
+              <dd>{frete ? formatarDinheiro(frete.price) : carrinho.subtotal >= 199 ? "Grátis" : "Calcular"}</dd>
             </div>
             <div>
               <dt>Descontos</dt>
-              <dd className="green">{money(discount)}</dd>
+              <dd className="green">{formatarDinheiro(desconto)}</dd>
             </div>
           </dl>
           <div className="summary-total">
             <span>Total</span>
-            <strong>{money(summary.total)}</strong>
-            <small>{installmentText(summary.total)}</small>
+            <strong>{formatarDinheiro(resumo.total)}</strong>
+            <small>{textoParcelas(resumo.total)}</small>
           </div>
-          <button className="button button-primary checkout-button" type="button" onClick={finishOrder}>
+          <button className="button button-primary checkout-button" type="button" onClick={finalizarPedido}>
             <LockKeyhole size={20} /> Finalizar compra
           </button>
 
@@ -323,12 +322,12 @@ export function CartClient() {
 
           <div className="summary-payment">
             <h3>Formas de pagamento aceitas</h3>
-            <PaymentGrid />
+            <GradePagamentos />
           </div>
         </aside>
       </div>
 
-      <BenefitBar className="cart-benefits" />
+      <BarraBeneficios className="cart-benefits" />
     </main>
   );
 }

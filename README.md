@@ -1,6 +1,6 @@
 # Catarino Prime Ferramentas
 
-Loja funcional em Next.js com PostgreSQL. As imagens de `modelo` foram usadas como referência visual e como sprites de produtos, sem transformar a página em uma imagem estática.
+Loja funcional em Next.js com PostgreSQL, Mercado Pago e esteira de importacao de produtos por links/CSV para dropshipping sem depender da API oficial do AliExpress.
 
 ## Rodar o projeto
 
@@ -16,11 +16,12 @@ Abra `http://localhost:3000`.
 
 ## Banco de dados
 
-O PostgreSQL usa a variável `DATABASE_URL`:
+O PostgreSQL usa a variavel `DATABASE_URL`:
 
 ```env
 DATABASE_URL="postgres://postgres:postgres@localhost:5432/catarino_prime"
 PGSSL="false"
+ADMIN_EMAILS="seu-email@dominio.com"
 ```
 
 O schema e os dados iniciais ficam em:
@@ -31,9 +32,29 @@ O schema e os dados iniciais ficam em:
 ## Funcionalidades
 
 - Home, produto e carrinho em Next.js.
-- Produtos, usuários, endereços, cupons, carrinhos e pedidos modelados para PostgreSQL.
+- Catalogo inicial com 20 produtos de ferramentas.
+- Produtos, usuarios, enderecos, cupons, carrinhos e pedidos modelados para PostgreSQL.
 - Carrinho persistido por cookie.
-- Login e cadastro com senha criptografada e sessão HTTP-only.
-- Cálculo de frete.
+- Login e cadastro com senha criptografada e sessao HTTP-only.
+- Calculo de frete.
 - Cupom `PRIME10`.
-- Finalização de pedido exige login e grava em `orders` e `order_items`.
+- Finalizacao de pedido exige login e grava em `orders` e `order_items`.
+- Admin protegido por `ADMIN_EMAILS` em `/admin/aliexpress`.
+- Importa produtos por links/CSV, tenta puxar dados do fornecedor e baixa imagens para `public/products/imported`.
+- Produtos importados entram em revisao e precisam ser publicados antes de aparecer na loja.
+
+## Deploy Cloudflare
+
+O projeto esta preparado para Cloudflare Workers com OpenNext:
+
+```bash
+npm run build:cloudflare
+npm run deploy:cloudflare
+```
+
+Arquivos principais:
+
+- `open-next.config.ts`
+- `wrangler.jsonc`
+
+Para usar `catarinoprime.com.br`, adicione o dominio na Cloudflare primeiro. Quando a Cloudflare mostrar os dois nameservers, coloque-os no Registro.br em `Alterar servidores DNS`. Depois que a zona estiver ativa, descomente o bloco `routes` em `wrangler.jsonc` e rode `npm run deploy:cloudflare` novamente.

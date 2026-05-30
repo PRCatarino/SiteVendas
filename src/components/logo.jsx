@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function Logo() {
+export function Logotipo() {
   return (
     <Link className="logo" href="/" aria-label="Catarino Prime Ferramentas">
       <span className="logo-mark" aria-hidden="true">

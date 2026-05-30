@@ -1,18 +1,26 @@
-import { AliExpressAdmin } from "@/components/aliexpress-admin";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
-import { getDropAdminData } from "@/lib/store";
+import { Suspense } from "react";
+import { AdminAliExpress } from "@/components/aliexpress-admin";
+import { Rodape } from "@/components/footer";
+import { Cabecalho } from "@/components/header";
+import { obterUsuarioAtual } from "@/lib/auth";
+import { obterDadosAdminDrop } from "@/lib/store";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function AliExpressAdminPage() {
-  const { products, orders } = await getDropAdminData();
+export default async function PaginaAdminAliExpress() {
+  const usuario = await obterUsuarioAtual();
+  if (!usuario?.is_admin) redirect("/login?next=/admin/aliexpress");
+
+  const { products, orders } = await obterDadosAdminDrop();
 
   return (
     <>
-      <Header />
-      <AliExpressAdmin initialProducts={products} initialOrders={orders} />
-      <Footer />
+      <Cabecalho />
+      <Suspense>
+        <AdminAliExpress initialProducts={products} initialOrders={orders} />
+      </Suspense>
+      <Rodape />
     </>
   );
 }

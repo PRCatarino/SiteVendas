@@ -1,10 +1,10 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { AddToCartButton } from "@/components/add-to-cart-button";
-import { ProductImage } from "@/components/product-image";
-import { money } from "@/lib/format";
+import { BotaoAdicionarCarrinho } from "@/components/add-to-cart-button";
+import { ImagemProduto } from "@/components/product-image";
+import { formatarDinheiro } from "@/lib/format";
 
-export function KitStrip({ kits }) {
+export function FaixaKits({ kits }) {
   return (
     <section className="kit-section">
       <div className="container">
@@ -17,12 +17,12 @@ export function KitStrip({ kits }) {
         <div className="kit-grid">
           {kits.map((kit) => (
             <article className="kit-card" key={kit.id}>
-              <ProductImage product={kit} className="kit-image" />
+              <ImagemProduto product={kit} className="kit-image" />
               <div>
                 <h3>{kit.name}</h3>
                 <p>{kit.description}</p>
-                <strong>{money(kit.price)}</strong>
-                <AddToCartButton productId={kit.id} />
+                <strong>{formatarDinheiro(kit.price)}</strong>
+                <BotaoAdicionarCarrinho productId={kit.id} />
               </div>
             </article>
           ))}

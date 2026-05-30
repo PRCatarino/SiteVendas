@@ -1,13 +1,13 @@
-import { CartClient } from "@/components/cart-client";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
+import { ClienteCarrinho } from "@/components/cart-client";
+import { Rodape } from "@/components/footer";
+import { Cabecalho } from "@/components/header";
 
-export default function CartPage() {
+export default function PaginaCarrinho() {
   return (
     <>
-      <Header />
-      <CartClient />
-      <Footer />
+      <Cabecalho />
+      <ClienteCarrinho />
+      <Rodape />
     </>
   );
 }

@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
-import { createSession, registerUser, SESSION_COOKIE } from "@/lib/auth";
+import { criarSessao, registrarUsuario, COOKIE_SESSAO } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const user = await registerUser(body);
-    const session = await createSession(user.id);
-    const response = NextResponse.json({ user }, { status: 201 });
-    response.cookies.set(SESSION_COOKIE, session.token, {
+    const usuario = await registrarUsuario(body);
+    const sessao = await criarSessao(usuario.id);
+    const response = NextResponse.json({ user: usuario }, { status: 201 });
+    response.cookies.set(COOKIE_SESSAO, sessao.token, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      expires: session.expires,
+      expires: sessao.expires,
     });
     return response;
   } catch (error) {

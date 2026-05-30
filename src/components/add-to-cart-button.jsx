@@ -1,15 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { useToast } from "@/components/toast";
 
-export function AddToCartButton({ productId, quantity = 1, children = "Comprar", variant = "primary", onAdded }) {
-  const [loading, setLoading] = useState(false);
-  const { showToast } = useToast();
+export function BotaoAdicionarCarrinho({
+  productId,
+  quantity = 1,
+  children = "Comprar",
+  variant = "primary",
+  redirectTo,
+  onAdded,
+}) {
+  const [carregando, setCarregando] = useState(false);
+  const { exibirToast } = useToast();
+  const router = useRouter();
 
-  async function addToCart() {
-    setLoading(true);
+  async function adicionarAoCarrinho() {
+    setCarregando(true);
 
     try {
       const response = await fetch("/api/cart", {
@@ -23,19 +32,28 @@ export function AddToCartButton({ productId, quantity = 1, children = "Comprar",
       }
 
       window.dispatchEvent(new Event("cart-updated"));
-      showToast("Produto adicionado ao carrinho.");
-      onAdded?.();
+      if (redirectTo) {
+        router.push(redirectTo);
+      } else {
+        exibirToast("Produto adicionado ao carrinho.");
+        onAdded?.();
+      }
     } catch (error) {
-      showToast(error.message);
+      exibirToast(error.message);
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
   }
 
   return (
-    <button className={`button button-${variant}`} type="button" onClick={addToCart} disabled={loading}>
+    <button
+      className={`button button-${variant}`}
+      type="button"
+      onClick={adicionarAoCarrinho}
+      disabled={carregando}
+    >
       <ShoppingCart size={18} aria-hidden="true" />
-      {loading ? "Adicionando" : children}
+      {carregando ? "Adicionando..." : children}
     </button>
   );
 }

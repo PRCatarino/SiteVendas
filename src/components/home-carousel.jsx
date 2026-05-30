@@ -1,64 +1,57 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
 
-const slides = [
-  {
-    title: "Qualidade que você pode confiar",
-    text: "Ferramentas profissionais para quem exige desempenho, segurança e durabilidade.",
-    image: "/products/hero-tools.svg",
-    href: "/produto/furadeira-de-impacto-650w",
-  },
-  {
-    title: "Kits completos para sua oficina",
-    text: "Organização, resistência e peças essenciais para o trabalho render mais.",
-    image: "/products/hero-kit.svg",
-    href: "/produto/kit-oficina-150-pecas",
-  },
-  {
-    title: "Precisão em cada detalhe",
-    text: "Chaves, alicates e instrumentos de medição com padrão profissional.",
-    image: "/products/hero-measure.svg",
-    href: "/produto/jogo-de-chaves-de-fenda-6-pecas",
-  },
+const slidesCarrossel = [
+  { src: "/banners/banner-1.png", href: "/produtos", label: "Ferramentas profissionais" },
+  { src: "/banners/banner-2.png", href: "/produtos?ofertas=true", label: "Ofertas da semana" },
+  { src: "/banners/banner-3.png", href: "/produtos", label: "Qualidade e durabilidade" },
 ];
 
-export function HomeCarousel() {
-  const [active, setActive] = useState(0);
-  const slide = slides[active];
+export function CarrosselHome() {
+  const [ativo, setAtivo] = useState(0);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setActive((current) => (current + 1) % slides.length);
-    }, 3000);
-    return () => window.clearTimeout(timer);
-  }, [active]);
+    const timer = window.setInterval(() => {
+      setAtivo((atual) => (atual + 1) % slidesCarrossel.length);
+    }, 5500);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  function irPara(indice) {
+    setAtivo((indice + slidesCarrossel.length) % slidesCarrossel.length);
+  }
 
   return (
-    <section className="hero-carousel" aria-label="Destaques da loja">
-      <div className="container hero-slide" key={slide.title}>
-        <div className="hero-copy">
-          <h1>{slide.title}</h1>
-          <p>{slide.text}</p>
-          <Link className="button button-primary hero-button" href={slide.href}>
-            Comprar agora <ChevronRight size={21} />
-          </Link>
-        </div>
-        <div className="hero-product" aria-hidden="true">
-          <Image src={slide.image} alt="" width={900} height={650} priority />
-        </div>
+    <section className="hero-slider" aria-label="Destaques da loja">
+      <div className="slides">
+        {slidesCarrossel.map((slide, i) => (
+          <article key={slide.src} className={`slide${i === ativo ? " active" : ""}`}>
+            <Link href={slide.href} style={{ display: "block", width: "100%", height: "100%" }}>
+              <img src={slide.src} alt={slide.label} />
+            </Link>
+          </article>
+        ))}
       </div>
-      <div className="carousel-dots" aria-label="Selecionar destaque">
-        {slides.map((item, index) => (
+
+      <button className="slider-btn prev" type="button" onClick={() => irPara(ativo - 1)} aria-label="Banner anterior">
+        &#8249;
+      </button>
+      <button className="slider-btn next" type="button" onClick={() => irPara(ativo + 1)} aria-label="Proximo banner">
+        &#8250;
+      </button>
+
+      <div className="dots" aria-label="Selecionar banner">
+        {slidesCarrossel.map((slide, i) => (
           <button
-            key={item.title}
-            className={index === active ? "active" : ""}
+            key={slide.src}
+            className={i === ativo ? "active" : ""}
             type="button"
-            onClick={() => setActive(index)}
-            aria-label={`Ver destaque ${index + 1}`}
+            onClick={() => irPara(i)}
+            aria-label={`Banner ${i + 1}`}
+            aria-current={i === ativo}
           />
         ))}
       </div>

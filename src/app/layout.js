@@ -1,5 +1,5 @@
 import "./globals.css";
-import { ToastProvider } from "@/components/toast";
+import { ProvedorToast } from "@/components/toast";
 
 export const metadata = {
   title: "Catarino Prime Ferramentas",
@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <ProvedorToast>{children}</ProvedorToast>
       </body>
     </html>
   );

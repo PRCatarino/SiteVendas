@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPayment, verifyWebhookSignature } from "@/lib/mercado-pago";
-import { updatePaymentFromProvider } from "@/lib/store";
+import { atualizarPagamentoFornecedor } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,8 @@ export async function POST(request) {
   const requestId = request.headers.get("x-request-id");
   const signatureHeader = request.headers.get("x-signature");
 
-  const valid = verifyWebhookSignature({ dataId, requestId, signatureHeader });
-  if (!valid) {
+  const valido = verifyWebhookSignature({ dataId, requestId, signatureHeader });
+  if (!valido) {
     return NextResponse.json({ error: "Assinatura Mercado Pago inválida." }, { status: 401 });
   }
 
@@ -20,19 +20,19 @@ export async function POST(request) {
     return NextResponse.json({ received: true, ignored: "Sem ID de pagamento." });
   }
 
-  const payment = await getPayment(dataId);
-  const orderId = payment.external_reference;
+  const pagamento = await getPayment(dataId);
+  const pedidoId = pagamento.external_reference;
 
-  if (!orderId) {
+  if (!pedidoId) {
     return NextResponse.json({ received: true, ignored: "Pagamento sem external_reference." });
   }
 
-  await updatePaymentFromProvider({
-    orderId,
-    providerPaymentId: String(payment.id || dataId),
-    providerPreferenceId: payment.preference_id || null,
-    status: payment.status || "pending",
-    rawPayload: payment,
+  await atualizarPagamentoFornecedor({
+    orderId: pedidoId,
+    providerPaymentId: String(pagamento.id || dataId),
+    providerPreferenceId: pagamento.preference_id || null,
+    status: pagamento.status || "pending",
+    rawPayload: pagamento,
   });
 
   return NextResponse.json({ received: true });

@@ -2,31 +2,31 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
-const ToastContext = createContext(null);
+const ContextoToast = createContext(null);
 
-export function ToastProvider({ children }) {
-  const [message, setMessage] = useState("");
+export function ProvedorToast({ children }) {
+  const [mensagem, setMensagem] = useState("");
 
-  const showToast = useCallback((nextMessage) => {
-    setMessage(nextMessage);
+  const exibirToast = useCallback((novaMensagem) => {
+    setMensagem(novaMensagem);
     window.clearTimeout(window.__catarinoToastTimer);
-    window.__catarinoToastTimer = window.setTimeout(() => setMessage(""), 2600);
+    window.__catarinoToastTimer = window.setTimeout(() => setMensagem(""), 2600);
   }, []);
 
-  const value = useMemo(() => ({ showToast }), [showToast]);
+  const valor = useMemo(() => ({ exibirToast }), [exibirToast]);
 
   return (
-    <ToastContext.Provider value={value}>
+    <ContextoToast.Provider value={valor}>
       {children}
-      <div className={`toast ${message ? "is-visible" : ""}`} role="status" aria-live="polite">
-        {message}
+      <div className={`toast ${mensagem ? "is-visible" : ""}`} role="status" aria-live="polite">
+        {mensagem}
       </div>
-    </ToastContext.Provider>
+    </ContextoToast.Provider>
   );
 }
 
 export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) return { showToast: () => {} };
-  return context;
+  const contexto = useContext(ContextoToast);
+  if (!contexto) return { exibirToast: () => {} };
+  return contexto;
 }

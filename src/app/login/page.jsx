@@ -1,18 +1,18 @@
 import { Suspense } from "react";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
-import { LoginForm } from "@/components/auth-forms";
+import { Rodape } from "@/components/footer";
+import { Cabecalho } from "@/components/header";
+import { FormularioLogin } from "@/components/auth-forms";
 
-export default function LoginPage() {
+export default function PaginaLogin() {
   return (
     <>
-      <Header />
+      <Cabecalho />
       <main className="auth-page">
         <Suspense fallback={null}>
-          <LoginForm />
+          <FormularioLogin />
         </Suspense>
       </main>
-      <Footer />
+      <Rodape />
     </>
   );
 }

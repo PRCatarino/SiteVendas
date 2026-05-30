@@ -1,42 +1,20 @@
-import { Award, Headphones, ShieldCheck, Truck } from "lucide-react";
-
-const benefits = [
-  {
-    icon: Truck,
-    title: "Entrega Rápida",
-    text: "Para todo o Brasil",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Pagamento Seguro",
-    text: "Ambiente 100% seguro",
-  },
-  {
-    icon: Award,
-    title: "Produtos Profissionais",
-    text: "Qualidade testada e aprovada",
-  },
-  {
-    icon: Headphones,
-    title: "Suporte Especializado",
-    text: "Atendimento técnico dedicado",
-  },
+const beneficios = [
+  { icon: "🚚", title: "Entrega Rapida", text: "Para todo o Brasil" },
+  { icon: "🛡️", title: "Pagamento Seguro", text: "Ambiente 100% seguro" },
+  { icon: "🏅", title: "Produtos Profissionais", text: "Qualidade testada e aprovada" },
+  { icon: "🎧", title: "Suporte Especializado", text: "Atendimento tecnico dedicado" },
 ];
 
-export function BenefitBar({ className = "" }) {
+export function BarraBeneficios({ className = "" }) {
   return (
-    <section className={`benefit-bar ${className}`} aria-label="Benefícios da loja">
-      <div className="container benefit-grid">
-        {benefits.map(({ icon: Icon, title, text }) => (
-          <div className="benefit-item" key={title}>
-            <Icon size={42} aria-hidden="true" />
-            <span>
-              <strong>{title}</strong>
-              <small>{text}</small>
-            </span>
-          </div>
-        ))}
-      </div>
+    <section className={`benefits container${className ? ` ${className}` : ""}`} aria-label="Beneficios da loja">
+      {beneficios.map(({ icon, title, text }) => (
+        <div key={title}>
+          <span className="benefit-icon" aria-hidden="true">{icon}</span>
+          <strong>{title}</strong>
+          <small>{text}</small>
+        </div>
+      ))}
     </section>
   );
 }

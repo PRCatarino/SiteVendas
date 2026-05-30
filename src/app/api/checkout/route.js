@@ -1,64 +1,94 @@
 import { NextResponse } from "next/server";
-import { getUserBySessionToken, SESSION_COOKIE } from "@/lib/auth";
-import { createOrder, createPaymentRecord, getOrderDetails } from "@/lib/store";
-import { createCheckoutPreference, hasMercadoPagoToken } from "@/lib/mercado-pago";
+import { obterUsuarioPorToken, COOKIE_SESSAO } from "@/lib/auth";
+import { calcularTotaisCarrinho, criarPedido, criarRegistroPagamento, obterDetalhesPedido } from "@/lib/store";
+import { createCheckoutSession, hasStripe } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
-const CART_COOKIE = "catarino_cart_id";
+const COOKIE_CARRINHO = "catarino_cart_id";
 
 export async function POST(request) {
   const body = await request.json();
-  const cartId = request.cookies.get(CART_COOKIE)?.value;
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const user = token ? await getUserBySessionToken(token) : null;
+  const cartId = request.cookies.get(COOKIE_CARRINHO)?.value;
+  const token = request.cookies.get(COOKIE_SESSAO)?.value;
+  const usuario = token ? await obterUsuarioPorToken(token) : null;
 
   if (!cartId) {
     return NextResponse.json({ error: "Carrinho não encontrado." }, { status: 400 });
   }
 
-  if (!user) {
+  if (!usuario) {
     return NextResponse.json({ error: "Faça login para finalizar a compra.", loginRequired: true }, { status: 401 });
   }
 
-  const pendingOrder = await createOrder(cartId, {
-    cep: body.cep,
-    couponCode: body.couponCode,
-    userId: user.id,
-    status: "pending_payment",
-    paymentProvider: "mercado_pago",
-  });
-  const order = await getOrderDetails(pendingOrder.id);
+  // Calculate totals without touching the DB yet
+  let draft;
+  try {
+    draft = await calcularTotaisCarrinho(cartId, { couponCode: body.couponCode });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
 
-  if (!hasMercadoPagoToken()) {
-    await createPaymentRecord(order, {
-      status: "pending_configuration",
-      rawPayload: { reason: "MERCADO_PAGO_ACCESS_TOKEN não configurado." },
+  // If Stripe is not configured, create the order and return a pending state
+  if (!hasStripe()) {
+    const pedidoPendente = await criarPedido(cartId, {
+      cep: body.cep,
+      couponCode: body.couponCode,
+      userId: usuario.id,
+      status: "pending_payment",
+      paymentProvider: "stripe",
     });
-
+    const pedido = await obterDetalhesPedido(pedidoPendente.id);
+    await criarRegistroPagamento(pedido, {
+      provider: "stripe",
+      status: "pending_configuration",
+      rawPayload: { reason: "STRIPE_SECRET_KEY não configurada." },
+    });
     return NextResponse.json(
       {
-        order,
+        order: pedido,
         checkoutUrl: null,
         paymentPending: true,
-        message: "Pedido criado. Configure o Mercado Pago para gerar o link de pagamento.",
+        message: "Pedido criado. Configure a chave Stripe para gerar o link de pagamento.",
       },
       { status: 201 }
     );
   }
 
-  const preference = await createCheckoutPreference(order);
-  await createPaymentRecord(order, {
-    providerPreferenceId: preference.id,
+  // Try Stripe BEFORE creating the order — no orphan orders on failure
+  let session;
+  try {
+    session = await createCheckoutSession(draft);
+  } catch (err) {
+    console.error("[checkout] Stripe error:", err.message);
+    return NextResponse.json(
+      { error: `Erro ao gerar link de pagamento: ${err.message}` },
+      { status: 500 }
+    );
+  }
+
+  // Stripe succeeded — now persist the order and clear the cart
+  const pedidoPendente = await criarPedido(cartId, {
+    cep: body.cep,
+    couponCode: body.couponCode,
+    userId: usuario.id,
+    status: "pending_payment",
+    paymentProvider: "stripe",
+  });
+  const pedido = await obterDetalhesPedido(pedidoPendente.id);
+
+  await criarRegistroPagamento(pedido, {
+    provider: "stripe",
+    providerPreferenceId: session.id,
     status: "pending",
-    checkoutUrl: preference.init_point || preference.sandbox_init_point || null,
-    rawPayload: preference,
+    checkoutUrl: session.url,
+    rawPayload: { id: session.id, url: session.url, status: session.status },
   });
 
   return NextResponse.json(
     {
-      order: { ...order, provider_preference_id: preference.id },
-      checkoutUrl: preference.init_point || preference.sandbox_init_point || null,
+      order: { ...pedido, provider_preference_id: session.id },
+      checkoutUrl: session.url,
     },
     { status: 201 }
   );

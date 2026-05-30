@@ -1,46 +1,66 @@
 import Link from "next/link";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
-import { ProductCard } from "@/components/product-card";
-import { getProducts } from "@/lib/store";
+import { Rodape } from "@/components/footer";
+import { Cabecalho } from "@/components/header";
+import { CardProduto } from "@/components/product-card";
+import { obterProdutos } from "@/lib/store";
 
-export default async function ProductsPage({ searchParams }) {
+const categorias = ["Ferramentas Eletricas", "Kits", "Chaves", "Medicao", "Alicates", "Solda", "Acessorios"];
+
+export const dynamic = "force-dynamic";
+
+export default async function PaginaProdutos({ searchParams }) {
   const resolvedSearchParams = await searchParams;
-  const type = String(resolvedSearchParams?.tipo || "");
-  const category = String(resolvedSearchParams?.categoria || "");
-  const products = await getProducts();
+  const tipo = String(resolvedSearchParams?.tipo || "");
+  const categoria = String(resolvedSearchParams?.categoria || "");
+  const busca = String(resolvedSearchParams?.q || "").trim().toLowerCase();
+  const ofertas = String(resolvedSearchParams?.ofertas || "") === "true";
+  const produtos = await obterProdutos();
 
-  const filtered = products.filter((product) => {
-    if (type === "kits") return product.is_kit || product.category.toLowerCase() === "kits";
-    if (category) return product.category.toLowerCase() === category.toLowerCase();
+  const filtrados = produtos.filter((produto) => {
+    const cat = (produto.category || "").toLowerCase();
+    if (tipo === "kits") return produto.is_kit || cat === "kits";
+    if (categoria && cat !== categoria.toLowerCase()) return false;
+    if (busca && !`${produto.name} ${cat} ${produto.description}`.toLowerCase().includes(busca)) return false;
+    if (ofertas && Number(produto.price) > 199.9) return false;
     return true;
   });
 
-  const title = type === "kits" ? "Kits Profissionais" : category ? category : "Todos os Produtos";
+  const titulo = ofertas ? "Ofertas da Semana" : tipo === "kits" ? "Kits Profissionais" : categoria ? categoria : busca ? `Busca: ${busca}` : "Todos os Produtos";
 
   return (
     <>
-      <Header />
+      <Cabecalho />
       <main className="container listing-page">
         <nav className="listing-filters" aria-label="Filtros de produtos">
-          <Link className={!type && !category ? "active" : ""} href="/produtos">Todos</Link>
-          <Link className={category === "Martelos" ? "active" : ""} href="/produtos?categoria=Martelos">Martelos</Link>
-          <Link className={category === "Chaves" ? "active" : ""} href="/produtos?categoria=Chaves">Chaves</Link>
-          <Link className={category === "Alicates" ? "active" : ""} href="/produtos?categoria=Alicates">Alicates</Link>
-          <Link className={category === "Medição" ? "active" : ""} href="/produtos?categoria=Medição">Medição</Link>
-          <Link className={type === "kits" ? "active" : ""} href="/produtos?tipo=kits">Kits</Link>
+          <Link className={!tipo && !categoria ? "active" : ""} href="/produtos">Todos</Link>
+          {categorias.map((entrada) => (
+            <Link
+              key={entrada}
+              className={(entrada === "Kits" ? tipo === "kits" : categoria === entrada) ? "active" : ""}
+              href={entrada === "Kits" ? "/produtos?tipo=kits" : `/produtos?categoria=${encodeURIComponent(entrada)}`}
+            >
+              {entrada}
+            </Link>
+          ))}
         </nav>
         <div className="section-title">
-          <h1>{title}</h1>
-          <span>{filtered.length} produtos</span>
+          <h1>{titulo}</h1>
+          <span>{filtrados.length} produtos</span>
         </div>
-        <div className="products-grid listing-grid">
-          {filtered.map((product) => (
-            <ProductCard product={product} key={product.id} />
-          ))}
-        </div>
+        {filtrados.length === 0 ? (
+          <div className="empty-state">
+            <p>Nenhum produto encontrado.</p>
+            <Link href="/produtos">Ver todos os produtos</Link>
+          </div>
+        ) : (
+          <div className="product-grid listing-grid">
+            {filtrados.map((produto) => (
+              <CardProduto product={produto} key={produto.id} />
+            ))}
+          </div>
+        )}
       </main>
-      <Footer />
+      <Rodape />
     </>
   );
 }

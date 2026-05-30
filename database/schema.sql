@@ -33,8 +33,13 @@ alter table products add column if not exists supplier_currency text not null de
 alter table products add column if not exists markup_percent numeric(7, 2) not null default 40;
 alter table products add column if not exists freight_estimate numeric(10, 2);
 alter table products add column if not exists sync_status text not null default 'manual';
+alter table products add column if not exists product_status text not null default 'published';
+alter table products add column if not exists source_url text;
+alter table products add column if not exists scrape_status text;
+alter table products add column if not exists scrape_error text;
 alter table products add column if not exists external_payload jsonb not null default '{}'::jsonb;
 alter table products add column if not exists synced_at timestamptz;
+alter table products add column if not exists videos jsonb not null default '[]'::jsonb;
 
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),

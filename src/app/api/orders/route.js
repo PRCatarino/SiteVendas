@@ -1,30 +1,30 @@
 import { NextResponse } from "next/server";
-import { getUserBySessionToken, SESSION_COOKIE } from "@/lib/auth";
-import { createOrder } from "@/lib/store";
+import { obterUsuarioPorToken, COOKIE_SESSAO } from "@/lib/auth";
+import { criarPedido } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-const CART_COOKIE = "catarino_cart_id";
+const COOKIE_CARRINHO = "catarino_cart_id";
 
 export async function POST(request) {
   const body = await request.json();
-  const cartId = request.cookies.get(CART_COOKIE)?.value;
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const user = token ? await getUserBySessionToken(token) : null;
+  const cartId = request.cookies.get(COOKIE_CARRINHO)?.value;
+  const token = request.cookies.get(COOKIE_SESSAO)?.value;
+  const usuario = token ? await obterUsuarioPorToken(token) : null;
 
   if (!cartId) {
     return NextResponse.json({ error: "Carrinho não encontrado." }, { status: 400 });
   }
 
-  if (!user) {
+  if (!usuario) {
     return NextResponse.json({ error: "Faça login para finalizar a compra.", loginRequired: true }, { status: 401 });
   }
 
-  const order = await createOrder(cartId, {
+  const pedido = await criarPedido(cartId, {
     cep: body.cep,
     couponCode: body.couponCode,
-    userId: user.id,
+    userId: usuario.id,
   });
 
-  return NextResponse.json({ order }, { status: 201 });
+  return NextResponse.json({ order: pedido }, { status: 201 });
 }

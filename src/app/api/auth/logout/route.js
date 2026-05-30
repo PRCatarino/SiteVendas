@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { deleteSession, SESSION_COOKIE } from "@/lib/auth";
+import { excluirSessao, COOKIE_SESSAO } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  await deleteSession(token);
+  const token = request.cookies.get(COOKIE_SESSAO)?.value;
+  await excluirSessao(token);
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, "", {
+  response.cookies.set(COOKIE_SESSAO, "", {
     httpOnly: true,
     sameSite: "lax",
     path: "/",

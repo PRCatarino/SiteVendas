@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
-import { createManualAliExpressProduct, importAliExpressProduct } from "@/lib/store";
+import { exigirAdminDaRequisicao } from "@/lib/auth";
+import { criarProdutoAliExpressManual, importarProdutoAliExpress } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
+  try {
+    await exigirAdminDaRequisicao(request);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: error.status || 403 });
+  }
+
   const body = await request.json();
 
   if (!body.productInput) {
@@ -11,20 +18,24 @@ export async function POST(request) {
   }
 
   try {
-    const product = body.manual
-      ? await createManualAliExpressProduct({
+    const produto = body.manual
+      ? await criarProdutoAliExpressManual({
           productInput: body.productInput,
           name: body.name,
           cost: body.cost,
           markupPercent: body.markupPercent,
           imageUrl: body.imageUrl,
+          images: Array.isArray(body.images) ? body.images : [],
+          description: body.description || "",
+          category: body.category || "AliExpress",
+          videoUrl: body.videoUrl || "",
         })
-      : await importAliExpressProduct({
+      : await importarProdutoAliExpress({
           productInput: body.productInput,
           markupPercent: body.markupPercent,
         });
 
-    return NextResponse.json({ product }, { status: 201 });
+    return NextResponse.json({ product: produto }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

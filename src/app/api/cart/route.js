@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
-import { addCartItem, clearCart, getCart, setCartItem } from "@/lib/store";
+import { adicionarItemCarrinho, limparCarrinho, obterCarrinho, definirItemCarrinho } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-const CART_COOKIE = "catarino_cart_id";
+const COOKIE_CARRINHO = "catarino_cart_id";
 
-function getCartId(request) {
-  return request.cookies.get(CART_COOKIE)?.value;
+function obterIdCarrinho(request) {
+  return request.cookies.get(COOKIE_CARRINHO)?.value;
 }
 
-function cartResponse(cart, status = 200) {
-  const response = NextResponse.json({ cart }, { status });
-  response.cookies.set(CART_COOKIE, cart.id, {
+function respostaCarrinho(carrinho, status = 200) {
+  const response = NextResponse.json({ cart: carrinho }, { status });
+  response.cookies.set(COOKIE_CARRINHO, carrinho.id, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -21,8 +21,8 @@ function cartResponse(cart, status = 200) {
 }
 
 export async function GET(request) {
-  const cart = await getCart(getCartId(request));
-  return cartResponse(cart);
+  const carrinho = await obterCarrinho(obterIdCarrinho(request));
+  return respostaCarrinho(carrinho);
 }
 
 export async function POST(request) {
@@ -31,8 +31,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "Produto não informado." }, { status: 400 });
   }
 
-  const cart = await addCartItem(getCartId(request), body.productId, body.quantity || 1);
-  return cartResponse(cart, 201);
+  const carrinho = await adicionarItemCarrinho(obterIdCarrinho(request), body.productId, body.quantity || 1);
+  return respostaCarrinho(carrinho, 201);
 }
 
 export async function PATCH(request) {
@@ -41,8 +41,8 @@ export async function PATCH(request) {
     return NextResponse.json({ error: "Produto não informado." }, { status: 400 });
   }
 
-  const cart = await setCartItem(getCartId(request), body.productId, body.quantity);
-  return cartResponse(cart);
+  const carrinho = await definirItemCarrinho(obterIdCarrinho(request), body.productId, body.quantity);
+  return respostaCarrinho(carrinho);
 }
 
 export async function DELETE(request) {
@@ -54,7 +54,7 @@ export async function DELETE(request) {
     body = {};
   }
 
-  const cartId = getCartId(request);
-  const cart = body.productId ? await setCartItem(cartId, body.productId, 0) : await clearCart(cartId);
-  return cartResponse(cart);
+  const cartId = obterIdCarrinho(request);
+  const carrinho = body.productId ? await definirItemCarrinho(cartId, body.productId, 0) : await limparCarrinho(cartId);
+  return respostaCarrinho(carrinho);
 }

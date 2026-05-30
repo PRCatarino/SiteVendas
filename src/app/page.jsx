@@ -1,46 +1,46 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { BenefitBar } from "@/components/benefit-bar";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
-import { HomeCarousel } from "@/components/home-carousel";
-import { KitStrip } from "@/components/kit-strip";
-import { ProductCard } from "@/components/product-card";
-import { getFeaturedProducts, getKitProducts } from "@/lib/store";
+import { BarraBeneficios } from "@/components/benefit-bar";
+import { FaixaCategorias } from "@/components/category-strip";
+import { Rodape } from "@/components/footer";
+import { Cabecalho } from "@/components/header";
+import { CarrosselHome } from "@/components/home-carousel";
+import { SecoesConfiancaHome } from "@/components/home-trust-sections";
+import { CardProduto } from "@/components/product-card";
+import { obterProdutos } from "@/lib/store";
+
+export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }) {
   const resolvedSearchParams = await searchParams;
-  const [featured, kits] = await Promise.all([getFeaturedProducts(), getKitProducts()]);
-  const search = String(resolvedSearchParams?.q || "").trim().toLowerCase();
-  const products = search
-    ? featured.filter((product) => product.name.toLowerCase().includes(search) || product.category.toLowerCase().includes(search))
-    : featured;
+  const todos = await obterProdutos();
+  const busca = String(resolvedSearchParams?.q || "").trim().toLowerCase();
+  const produtos = busca
+    ? todos.filter((p) => p.name.toLowerCase().includes(busca) || (p.category || "").toLowerCase().includes(busca))
+    : todos;
 
   return (
     <>
-      <Header />
+      <Cabecalho />
       <main>
-        <HomeCarousel />
+        <CarrosselHome />
+        <BarraBeneficios />
+        <FaixaCategorias />
 
-        <BenefitBar className="home-benefits" />
-
-        <section className="container products-section">
-          <div className="section-title">
+        <section className="products-section-new container">
+          <div className="section-title" style={{ marginBottom: 16, marginTop: 8 }}>
             <h2>Produtos em Destaque</h2>
-            <Link href="/produtos">
-              Ver todos <ChevronRight size={18} />
-            </Link>
+            <Link href="/produtos">Ver todos ›</Link>
           </div>
-          <div className="products-grid">
-            {products.map((product) => (
-              <ProductCard product={product} key={product.id} />
+          <div className="product-grid">
+            {produtos.slice(0, 8).map((produto) => (
+              <CardProduto product={produto} key={produto.id} />
             ))}
           </div>
         </section>
 
-        <KitStrip kits={kits} />
+        <SecoesConfiancaHome />
       </main>
-      <Footer />
+      <Rodape />
     </>
   );
 }

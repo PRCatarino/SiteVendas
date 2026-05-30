@@ -109,8 +109,57 @@ function numberFromAli(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+export async function getDsProduct(productId) {
+  const data = await callAliExpress("aliexpress.ds.product.get", {
+    product_id: productId,
+    ship_to_country: "BR",
+    target_currency: "BRL",
+    target_language: "PT",
+  });
+
+  return data?.aliexpress_ds_product_get_response?.result || data?.result || null;
+}
+
+function extractDsMedia(dsResult) {
+  const media = dsResult?.ae_multimedia_info_dto;
+  if (!media) return { videos: [], images: [] };
+
+  const rawVideos = media.ae_video_dtos?.ae_video_d_t_o;
+  const videos = (Array.isArray(rawVideos) ? rawVideos : rawVideos ? [rawVideos] : [])
+    .map((v) => ({ url: v.media_url || v.ali_member_id || "", poster: v.poster_url || "" }))
+    .filter((v) => v.url);
+
+  const rawImages = media.image_urls;
+  const images = (Array.isArray(rawImages) ? rawImages : rawImages ? [rawImages] : []).filter(Boolean);
+
+  return { videos, images };
+}
+
+function extractDsSpecs(dsResult) {
+  const props = dsResult?.ae_item_properties?.ae_item_property;
+  if (!props) return [];
+  const list = Array.isArray(props) ? props : [props];
+  return list
+    .filter((p) => p.attr_name && p.attr_value)
+    .map((p) => ({ label: String(p.attr_name).trim(), value: String(p.attr_value).trim() }));
+}
+
+async function resolveAliExpressUrl(url) {
+  try {
+    const res = await fetch(url, { method: "HEAD", redirect: "follow" });
+    const finalUrl = res.url || url;
+    const id = parseAliExpressProductId(finalUrl);
+    return /^\d{6,}$/.test(id) ? id : finalUrl;
+  } catch {
+    return url;
+  }
+}
+
 export async function getAffiliateProduct(productInput) {
-  const productId = parseAliExpressProductId(productInput);
+  let productId = parseAliExpressProductId(productInput);
+  if (/^https?:\/\//i.test(productId)) {
+    productId = await resolveAliExpressUrl(productId);
+  }
   const config = getConfig();
   const data = await callAliExpress("aliexpress.affiliate.productdetail.get", {
     product_ids: productId,
@@ -125,16 +174,31 @@ export async function getAffiliateProduct(productInput) {
     throw new Error("Produto AliExpress não encontrado na resposta da API.");
   }
 
-  return normalizeAliExpressProduct(productId, product, data);
+  let dsResult = null;
+  try {
+    dsResult = await getDsProduct(productId);
+  } catch (_) {
+    // DS API optional — prossegue sem ela
+  }
+
+  return normalizeAliExpressProduct(productId, product, data, dsResult);
 }
 
-export function normalizeAliExpressProduct(productId, product, rawPayload = {}) {
+export function normalizeAliExpressProduct(productId, product, rawPayload = {}, dsResult = null) {
   const title = product.product_title || product.title || `Produto AliExpress ${productId}`;
   const salePrice = numberFromAli(product.target_sale_price || product.sale_price || product.app_sale_price);
   const originalPrice = numberFromAli(product.target_original_price || product.original_price);
   const image = product.product_main_image_url || product.product_small_image_urls?.string?.[0] || product.image_url || "";
   const detailUrl = product.promotion_link || product.product_detail_url || product.detail_url || "";
   const stock = Number(product.stock || product.product_quantity || 999);
+
+  const { videos, images: dsImages } = extractDsMedia(dsResult);
+  const dsSpecs = extractDsSpecs(dsResult);
+
+  const affiliateSmall = (product.product_small_image_urls?.string || []).filter(Boolean);
+  const galleryImages = dsImages.length
+    ? [image, ...dsImages].filter(Boolean)
+    : [image, ...affiliateSmall].filter(Boolean);
 
   return {
     externalProductId: productId,
@@ -147,7 +211,9 @@ export function normalizeAliExpressProduct(productId, product, rawPayload = {}) 
     rating: numberFromAli(product.evaluate_rate) || 5,
     reviewCount: Number(product.lastest_volume || product.orders || 0),
     imageUrl: image,
-    galleryImages: [image, ...(product.product_small_image_urls?.string || [])].filter(Boolean),
+    galleryImages,
+    videos,
+    specs: dsSpecs,
     affiliateUrl: detailUrl,
     rawPayload,
   };

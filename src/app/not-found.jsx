@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
+import { Cabecalho } from "@/components/header";
+import { Rodape } from "@/components/footer";
 
-export default function NotFound() {
+export default function NaoEncontrado() {
   return (
     <>
-      <Header />
+      <Cabecalho />
       <main className="not-found container">
         <h1>Produto não encontrado</h1>
         <Link className="button button-primary" href="/">Voltar para a loja</Link>
       </main>
-      <Footer />
+      <Rodape />
     </>
   );
 }

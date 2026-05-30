@@ -1,4 +1,6 @@
 .next
+.open-next
+.wrangler
 .next-*.log
 node_modules
 .env

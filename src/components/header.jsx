@@ -3,129 +3,118 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Phone, Search, ShoppingCart, Truck, UserRound } from "lucide-react";
-import { Logo } from "@/components/logo";
 
-const categories = ["Martelos", "Chaves", "Alicates", "Medição", "Kits", "Promoções", "Marcas", "Lançamentos"];
+const categoriasBusca = [
+  ["", "Todas as categorias"],
+  ["Ferramentas Eletricas", "Ferramentas Eletricas"],
+  ["Kits", "Kits"],
+  ["Chaves", "Chaves"],
+  ["Medicao", "Medicao"],
+  ["Alicates", "Alicates"],
+  ["Solda", "Solda"],
+  ["Acessorios", "Acessorios"],
+];
 
-export function Header() {
+export function Cabecalho() {
   const router = useRouter();
-  const [term, setTerm] = useState("");
-  const [count, setCount] = useState(0);
-  const [user, setUser] = useState(null);
+  const [termo, setTermo] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [contagem, setContagem] = useState(0);
+  const [usuario, setUsuario] = useState(null);
 
   useEffect(() => {
-    let ignore = false;
+    let ignorar = false;
 
-    async function loadCount() {
+    async function carregarContagem() {
       try {
         const response = await fetch("/api/cart", { cache: "no-store" });
         const data = await response.json();
-        if (!ignore) setCount(data.cart?.count || 0);
+        if (!ignorar) setContagem(data.cart?.count || 0);
       } catch {
-        if (!ignore) setCount(0);
+        if (!ignorar) setContagem(0);
       }
     }
 
-    async function loadUser() {
+    async function carregarUsuario() {
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         const data = await response.json();
-        if (!ignore) setUser(data.user || null);
+        if (!ignorar) setUsuario(data.user || null);
       } catch {
-        if (!ignore) setUser(null);
+        if (!ignorar) setUsuario(null);
       }
     }
 
-    loadCount();
-    loadUser();
-    window.addEventListener("cart-updated", loadCount);
-    window.addEventListener("auth-updated", loadUser);
+    carregarContagem();
+    carregarUsuario();
+    window.addEventListener("cart-updated", carregarContagem);
+    window.addEventListener("auth-updated", carregarUsuario);
     return () => {
-      ignore = true;
-      window.removeEventListener("cart-updated", loadCount);
-      window.removeEventListener("auth-updated", loadUser);
+      ignorar = true;
+      window.removeEventListener("cart-updated", carregarContagem);
+      window.removeEventListener("auth-updated", carregarUsuario);
     };
   }, []);
 
-  function submitSearch(event) {
+  function enviarBusca(event) {
     event.preventDefault();
-    const value = term.trim().toLowerCase();
-
-    if (value.includes("furadeira") || value.includes("impacto") || value.includes("650")) {
-      router.push("/produto/furadeira-de-impacto-650w");
-      return;
-    }
-
-    router.push(`/?q=${encodeURIComponent(term.trim())}`);
+    const params = new URLSearchParams();
+    if (termo.trim()) params.set("q", termo.trim());
+    if (categoria) params.set("categoria", categoria);
+    router.push(params.toString() ? `/produtos?${params.toString()}` : "/produtos");
   }
 
   return (
-    <header className="site-header">
-      <div className="top-line">
-        <div className="container header-line-content">
-          <span className="freight-note">
-            <Truck size={16} aria-hidden="true" />
-            <strong>Frete grátis</strong> para compras acima de <strong>R$199,00</strong>
-          </span>
-          <span className="header-help">
-            <Phone size={15} aria-hidden="true" />
-            Atendimento: (11) 99999-9999
-            <span className="help-link">
-              Ajuda <ChevronDown size={14} aria-hidden="true" />
-            </span>
-          </span>
+    <>
+      <div className="topbar">
+        <div className="container topbar-grid">
+          <span>🚚 <b>Frete gratis</b> para compras acima de <b>R$199,00</b></span>
+          <span>☎ Atendimento: (11) 99999-9999</span>
+          <span>🔒 Site 100% seguro</span>
         </div>
       </div>
 
-      <div className="main-header">
+      <header className="header">
         <div className="container header-grid">
-          <Logo />
+          <Link className="logo" href="/">
+            <span className="logo-mark">C</span>
+            <span>
+              <strong>CATARINO <em>PRIME</em></strong>
+              <small>FERRAMENTAS</small>
+            </span>
+          </Link>
 
-          <form className="search-box" onSubmit={submitSearch}>
+          <form className="search" onSubmit={enviarBusca}>
             <input
-              value={term}
-              onChange={(event) => setTerm(event.target.value)}
+              value={termo}
+              onChange={(e) => setTermo(e.target.value)}
               type="search"
-              placeholder="O que você precisa hoje?"
+              placeholder="O que voce precisa hoje?"
               aria-label="Pesquisar produtos"
             />
-            <button type="submit" aria-label="Pesquisar">
-              <Search size={24} />
-            </button>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              aria-label="Categoria da busca"
+            >
+              {categoriasBusca.map(([valor, rotulo]) => (
+                <option key={rotulo} value={valor}>{rotulo}</option>
+              ))}
+            </select>
+            <button type="submit">Buscar</button>
           </form>
 
-          <Link className="account-button" href={user ? "/minha-conta" : "/login"}>
-            <UserRound size={42} aria-hidden="true" />
-            <span>
-              {user ? "Minha Conta" : "Minha Conta"}
-              <strong>{user ? user.full_name.split(" ")[0] : "Entrar"}</strong>
-            </span>
-          </Link>
-
-          <Link className="cart-button" href="/carrinho">
-            <span className="cart-icon-wrap">
-              <ShoppingCart size={42} aria-hidden="true" />
-              <small>{count}</small>
-            </span>
-            <span>Carrinho</span>
-          </Link>
-        </div>
-      </div>
-
-      <nav className="category-nav" aria-label="Categorias principais">
-        <div className="container nav-row">
-          {categories.map((category) => (
-            <Link
-              key={category}
-              href={category.includes("Lan") ? "/produto/furadeira-de-impacto-650w" : `/produtos?categoria=${encodeURIComponent(category)}`}
-            >
-              {category}
+          <div className="header-actions">
+            <Link className="account-link" href={usuario ? "/minha-conta" : "/login"}>
+              Minha Conta<br /><strong>{usuario ? usuario.full_name.split(" ")[0] : "Entrar"}</strong>
             </Link>
-          ))}
+            <Link className="cart-link" href="/carrinho">
+              🛒 <span className="cart-count">{contagem}</span>
+              <br /><strong>Carrinho</strong>
+            </Link>
+          </div>
         </div>
-      </nav>
-    </header>
+      </header>
+    </>
   );
 }
-
